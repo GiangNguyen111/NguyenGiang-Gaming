@@ -24,16 +24,35 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
+function setStatus(state) {
+  if (state === "ONLINE") {
+    statusBox.textContent = "🟢 ONLINE";
+    statusBox.style.color = "#0f0";
+    localStorage.setItem("status", "ONLINE");
+  } else {
+    statusBox.textContent = "🔴 OFFLINE";
+    statusBox.style.color = "red";
+    localStorage.setItem("status", "OFFLINE");
+  }
+}
+
+window.addEventListener("load", () => {
+  const savedStatus = localStorage.getItem("status");
+  if (savedStatus) {
+    setStatus(savedStatus);
+  } else {
+    setStatus("ONLINE");
+  }
+});
+
 statusBox.addEventListener("click", () => {
   if (!isAdmin) {
     loginModal.style.display = "flex";
   } else {
     if (statusBox.textContent.includes("ONLINE")) {
-      statusBox.textContent = "🔴 OFFLINE";
-      statusBox.style.color = "red";
+      setStatus("OFFLINE");
     } else {
-      statusBox.textContent = "🟢 ONLINE";
-      statusBox.style.color = "#0f0";
+      setStatus("ONLINE");
     }
   }
 });
