@@ -1,3 +1,12 @@
+let isAdmin = false;
+const statusBox = document.getElementById("statusBox");
+const loginModal = document.getElementById("loginModal");
+const closeLogin = document.getElementById("closeLogin");
+const submitLogin = document.getElementById("submitLogin");
+const loginMsg = document.getElementById("loginMsg");
+const togglePass = document.getElementById("togglePass");
+const passwordInput = document.getElementById("password");
+
 function updateDateTime() {
   const now = new Date();
   const date = now.toLocaleDateString("vi-VN", {
@@ -14,6 +23,49 @@ function updateDateTime() {
 }
 updateDateTime();
 setInterval(updateDateTime, 1000);
+
+statusBox.addEventListener("click", () => {
+  if (!isAdmin) {
+    loginModal.style.display = "flex";
+  } else {
+    if (statusBox.textContent.includes("ONLINE")) {
+      statusBox.textContent = "🔴 OFFLINE";
+      statusBox.style.color = "red";
+    } else {
+      statusBox.textContent = "🟢 ONLINE";
+      statusBox.style.color = "#0f0";
+    }
+  }
+});
+
+closeLogin.addEventListener("click", () => {
+  loginModal.style.display = "none";
+  loginMsg.textContent = "";
+});
+
+submitLogin.addEventListener("click", () => {
+  const user = document.getElementById("username").value;
+  const pass = passwordInput.value;
+
+  if (user === "nguyengiang200722" && pass === "Zxc1230@@") {
+    isAdmin = true;
+    loginModal.style.display = "none";
+    loginMsg.textContent = "";
+    alert("Đăng nhập thành công! Bạn có thể chỉnh trạng thái.");
+  } else {
+    loginMsg.textContent = "Sai tài khoản hoặc mật khẩu!";
+  }
+});
+
+togglePass.addEventListener("click", () => {
+  if (passwordInput.type === "password") {
+    passwordInput.type = "text";
+    togglePass.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+  } else {
+    passwordInput.type = "password";
+    togglePass.innerHTML = '<i class="fa-solid fa-eye"></i>';
+  }
+});
 const data = [
   {
     section: "Rise of the Abyssal",
