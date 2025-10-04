@@ -1,0 +1,278 @@
+@import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=Poppins:wght@400;600&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  background: url("5.jpg") no-repeat center bottom;
+  background-size: cover;
+  background-attachment: fixed;
+  color: #fff;
+}
+#content {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 50px;
+}
+
+header {
+  position: relative;
+  text-align: center;
+  color: #fff;
+  padding: 40px 20px;
+  overflow: hidden;
+}
+
+header::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  background-color: rgba(0,0,0,0.5);
+  filter: blur(4px) brightness(0.5);
+  z-index: 0;
+}
+header * {
+  position: relative;
+  z-index: 1;
+}
+
+header .game-title {
+  font-family: 'Pirata One', cursive;
+  font-size: 64px;
+  font-weight: 800;
+  margin: 10px 0 5px 0;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  color: #ff3300;
+  text-shadow: 0 0 5px #ff3300, 0 0 10px #ff6600, 0 0 20px #ff9933, 0 0 40px #ff0000, 0 0 80px #ff6600;
+  animation: fire-flicker 2s infinite alternate;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes fire-flicker {
+  0% { text-shadow: 0 0 5px #ff3300, 0 0 15px #ff6600, 0 0 25px #ff9933, 0 0 45px #ff0000; }
+  50% { text-shadow: 0 0 8px #ff6600, 0 0 18px #ff9933, 0 0 30px #ff3300, 0 0 60px #ff6600; }
+  100% { text-shadow: 0 0 6px #ff0000, 0 0 20px #ff3300, 0 0 35px #ff6600, 0 0 70px #ff3300; }
+}
+
+header .subtitle {
+  position: relative;
+  z-index: 1;         
+  font-size: 22px;
+  font-weight: 600;
+  color: #00eaff;
+  letter-spacing: 2px;
+  text-shadow:
+    0 0 5px #00eaff,
+    0 0 10px #00bcd4,
+    0 0 20px #0097a7;
+  margin: 5px 0;
+}
+
+header .datetime-box {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: rgba(0,0,0,0.4);
+  padding: 10px 15px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,234,255,0.7);
+  backdrop-filter: blur(6px);
+}
+
+header .datetime-box #datetime {
+  font-size: 16px;
+  font-weight: 600;
+  color: #00eaff;
+  text-shadow: 0 0 5px #00eaff, 0 0 10px #00eaff, 0 0 20px #00eaff, 0 0 40px #0097a7;
+}
+
+.section {
+  margin: 25px auto;
+  padding: 25px;
+  max-width: 1100px;
+  background: #0f0b0b95;
+  border-radius: 16px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.15);
+}
+
+.section h2 {
+  text-align: center;
+  color: #f1eaea;
+  margin-bottom: 25px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: linear-gradient(145deg, #1111126e, #ffffff7e);
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 1px solid #e0e6f0;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+}
+
+.card h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f0f4f7;
+}
+
+.item {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 12px;
+  display: inline-block;
+  background: #ec0808;
+  color: #fff;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  transition: all 0.3s;
+}
+
+.item:hover {
+  background: #04ed04;
+  transform: scale(1.05);
+}
+
+.price {
+  font-size: 16px;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 12px;
+  display: inline-block;
+  background: #eef2f7;
+  color: #333;
+  border: 1px solid #d6dde8;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.3s;
+}
+
+.price:hover {
+  background: #e0e8f5;
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.trade-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin: 40px auto;
+  max-width: 1100px;
+  flex-wrap: wrap;
+}
+
+.trade-box {
+  flex: 1;
+  min-width: 280px;
+  background: #0f0b0b95;
+  border-radius: 16px;
+  padding: 20px 25px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.trade-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+.trade-box h2 {
+  text-align: center;
+  color: #e4e7ea;
+  font-size: 20px;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.trade-box ul {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+}
+
+.trade-box ul li {
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: #f4f0f0;
+}
+footer {
+  position: relative;
+  z-index: 2;
+  background: rgba(0,0,0,0.5);
+  padding: 25px;
+  text-align: center;
+}
+
+footer h2 {
+  margin-bottom: 15px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.contact {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+.contact a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #fff;
+  font-size: 16px;
+  padding: 10px 15px;
+  border-radius: 50px;
+  background: rgba(255,255,255,0.1);
+  transition: transform 0.3s, background 0.3s;
+}
+
+.contact a:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-3px);
+}
+
+.contact img {
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: #fff;
+  padding: 5px;
+}
+.trade-box summary {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  list-style: initial;
+}
+
