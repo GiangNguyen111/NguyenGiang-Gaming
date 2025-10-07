@@ -1,4 +1,4 @@
-let isAdmin = false;
+let adminLevel = 0;
 const statusBox = document.getElementById("statusBox");
 const loginModal = document.getElementById("loginModal");
 const closeLogin = document.getElementById("closeLogin");
@@ -19,7 +19,7 @@ function updateDateTime() {
     minute: "2-digit",
     second: "2-digit"
   });
-  document.getElementById("datetime").textContent = date + " - " + time;
+  document.getElementById("datetime").textContent = `${date} – ${time}`;
 }
 updateDateTime();
 setInterval(updateDateTime, 1000);
@@ -38,22 +38,15 @@ function setStatus(state) {
 
 window.addEventListener("load", () => {
   const savedStatus = localStorage.getItem("status");
-  if (savedStatus) {
-    setStatus(savedStatus);
-  } else {
-    setStatus("ONLINE");
-  }
+  setStatus(savedStatus || "ONLINE");
 });
 
 statusBox.addEventListener("click", () => {
-  if (!isAdmin) {
+  if (adminLevel === 0) {
     loginModal.style.display = "flex";
   } else {
-    if (statusBox.textContent.includes("ONLINE")) {
-      setStatus("OFFLINE");
-    } else {
-      setStatus("ONLINE");
-    }
+    if (statusBox.textContent.includes("ONLINE")) setStatus("OFFLINE");
+    else setStatus("ONLINE");
   }
 });
 
@@ -62,105 +55,175 @@ closeLogin.addEventListener("click", () => {
   loginMsg.textContent = "";
 });
 
-submitLogin.addEventListener("click", () => {
-  const user = document.getElementById("username").value;
-  const pass = passwordInput.value;
+function handleLogin() {
+  const user = document.getElementById("username").value.trim();
+  const pass = passwordInput.value.trim();
 
   if (user === "nguyengiang200722" && pass === "Zxc1230@@") {
-    isAdmin = true;
-    loginModal.style.display = "none";
-    loginMsg.textContent = "";
-    alert("Đăng nhập thành công! Bạn có thể chỉnh trạng thái.");
+    adminLevel = 1;
+    showCustomAlert("✅ Đăng nhập thành công!");
+    afterLogin();
   } else {
-    loginMsg.textContent = "Sai tài khoản hoặc mật khẩu!";
+    loginMsg.textContent = "❌ Sai tài khoản hoặc mật khẩu!";
+  }
+}
+
+document.getElementById("loginModal").addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleLogin();
   }
 });
+submitLogin.addEventListener("click", handleLogin);
+
+function afterLogin() {
+  loginModal.style.display = "none";
+  loginMsg.textContent = "";
+  enableTextEditing();
+  enablePriceEditing();
+}
 
 togglePass.addEventListener("click", () => {
-  if (passwordInput.type === "password") {
-    passwordInput.type = "text";
-    togglePass.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
-  } else {
-    passwordInput.type = "password";
-    togglePass.innerHTML = '<i class="fa-solid fa-eye"></i>';
-  }
+  passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+  togglePass.innerHTML =
+    passwordInput.type === "text"
+      ? '<i class="fa-solid fa-eye-slash"></i>'
+      : '<i class="fa-solid fa-eye"></i>';
 });
-const data = [
-  {
-    section: "Rise of the Abyssal",
-    items: [
-      { game: "Path Of Exile 2", item: "Chao Orb", price: "ib" },
-      { game: "Path Of Exile 2", item: "Exalted Orb", price: "ib" },
-      { game: "Path Of Exile 2", item: "Divine Orb", price: "2.200đ" }
-    ]
-  },
-  {
-    section: "Rise of the Abyssal",
-    items: [
-      { game: "Path Of Exile 2", item: "Regal Orb", price: "0đ" },
-      { game: "Path Of Exile 2", item: "Alchemy Orb", price: "0đ" }
-    ]
-  },
-  {
-    section: "Rise of the Abyssal",
-    items: [
-      { game: "Path Of Exile 1", item: "Chao Orb", price: "inbox" },
-      { game: "Path Of Exile 1", item: "Chaos Orb", price: "inbox" },
-      { game: "Path Of Exile 1", item: "Mirror of Kalandra", price: "inbox" }
-    ]
-  },
-  {
-    section: "Rise of the Abyssal",
-    items: [
-      { game: "Path Of Exile 1", item: "Divine Orb", price: "0đ" },
-      { game: "Path Of Exile 1", item: "Mirror of Kalandra", price: "inbox" }
-    ]
-  }
-];
-const container = document.getElementById("content");
 
-data.forEach(group => {
-  const section = document.createElement("section");
-  section.className = "section";
-  section.innerHTML = `<h2>${group.section}</h2>`;
+function enablePriceEditing() {
+  const priceModal = document.getElementById("priceModal");
+  const priceItemName = document.getElementById("priceItemName");
+  const newPriceInput = document.getElementById("newPriceInput");
+  const savePrice = document.getElementById("savePrice");
+  const cancelPrice = document.getElementById("cancelPrice");
 
-  const itemsDiv = document.createElement("div");
-  itemsDiv.className = "items";
+  let currentPriceEl = null;
 
-  group.items.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <h3>${item.game}</h3>
-      <p class="item">${item.item}</p>
-      <p class="price" data-price="${item.price}">${item.price}</p>
-    `;
-    itemsDiv.appendChild(card);
+  document.querySelectorAll(".price").forEach(el => {
+    el.addEventListener("click", () => {
+      if (adminLevel < 1) {
+        alert("❌ Bạn cần đăng nhập Admin để chỉnh giá!");
+        return;
+      }
+
+      currentPriceEl = el;
+      priceItemName.textContent =
+        el.previousElementSibling?.textContent || "Sản phẩm";
+      newPriceInput.value = el.textContent;
+      priceModal.style.display = "flex";
+      document.body.style.overflow = "hidden";
+      setTimeout(() => newPriceInput.focus(), 100);
+    });
   });
 
-  section.appendChild(itemsDiv);
-  container.appendChild(section);
-});
-document.querySelectorAll(".price").forEach(el => {
-  const text = el.textContent.toLowerCase();
+  newPriceInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      savePrice.click();
+    }
+  });
 
-  if (text.includes("0đ")) {
-    el.style.color = "red";
-    el.style.fontWeight = "bold";
-    el.dataset.type = "zero";
-  } else if (text.includes("inbox")) {
-    el.style.color = "orange";
-    el.style.fontWeight = "bold";
-    el.dataset.type = "inbox";
-  } else {
-    el.dataset.type = "normal";
+  savePrice.addEventListener("click", () => {
+    const newPrice = newPriceInput.value.trim();
+    if (newPrice && currentPriceEl) {
+      const itemKey =
+        currentPriceEl.previousElementSibling?.textContent.trim() ||
+        currentPriceEl.dataset.editId;
+      currentPriceEl.textContent = newPrice;
+      localStorage.setItem("price_" + itemKey, newPrice);
+    }
+    closeModal();
+  });
+
+  cancelPrice.addEventListener("click", closeModal);
+  priceModal.addEventListener("click", e => {
+    if (e.target === priceModal) closeModal();
+  });
+
+  function closeModal() {
+    priceModal.style.display = "none";
+    document.body.style.overflow = "";
+    newPriceInput.value = "";
   }
+}
 
-  el.addEventListener("click", () => {
-    let newPrice = prompt("Nhập giá mới:", el.dataset.price);
-    if (newPrice) {
-      el.dataset.price = newPrice;
-      el.textContent = newPrice;
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".price").forEach(el => {
+    const itemKey =
+      el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+    const savedPrice = localStorage.getItem("price_" + itemKey);
+    if (savedPrice) el.textContent = savedPrice;
+  });
+});
+
+function enableTextEditing() {
+  const selector =
+    "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
+
+  document.querySelectorAll(selector).forEach((el, index) => {
+    if (!el.dataset.editId) {
+      el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
+    }
+    el.setAttribute("data-original", el.textContent);
+  });
+
+  document.querySelectorAll(selector).forEach(el => {
+    el.addEventListener("click", () => {
+      if (adminLevel === 0) return;
+      if (el.isContentEditable) return;
+
+      el.contentEditable = "true";
+      el.style.outline = "2px dashed #00eaff";
+      el.focus();
+      el.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          el.blur();
+        }
+      });
+
+      el.addEventListener(
+        "blur",
+        () => {
+          el.contentEditable = "false";
+          el.style.outline = "none";
+          const key = "text_edit_" + el.dataset.editId;
+          const original = el.getAttribute("data-original") || "";
+          const current = el.textContent.trim();
+
+          if (current !== original.trim()) {
+            localStorage.setItem(key, current);
+          }
+        },
+        { once: true }
+      );
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const selector =
+    "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
+  document.querySelectorAll(selector).forEach((el, index) => {
+    if (!el.dataset.editId)
+      el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
+    el.setAttribute("data-original", el.textContent);
+
+    const saved = localStorage.getItem("text_edit_" + el.dataset.editId);
+    if (saved !== null && saved.trim() !== "") {
+      el.textContent = saved;
     }
   });
 });
+function showCustomAlert(message) {
+  const alertBox = document.getElementById("customAlert");
+  const msg = document.getElementById("alertMessage");
+  msg.textContent = message;
+
+  alertBox.classList.remove("hidden");
+
+  setTimeout(() => {
+    alertBox.classList.add("hidden");
+  }, 3000);
+}
