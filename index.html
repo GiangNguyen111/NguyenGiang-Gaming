@@ -33,10 +33,24 @@
     <p id="loginMsg"></p>
   </div>
 </div>
-
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<div id="customAlert" class="hidden">
+  <div class="alert-box">
+    <span id="alertMessage"></span>
+  </div>
+</div>
   </header>
-
+  <div class="price-modal" id="priceModal">
+  <div class="price-box">
+    <h2>Chỉnh Giá</h2>
+    <p id="priceItemName"></p>
+    <input type="text" id="newPriceInput" placeholder="Nhập giá mới...">
+    <div class="price-btns">
+      <button id="savePrice">Lưu</button>
+      <button id="cancelPrice">Hủy</button>
+    </div>
+  </div>
+  </div>
   <section class="section">
     <h2>Rise of the Abyssal</h2>
     <div class="items">
