@@ -287,7 +287,7 @@ footer h2 {
 
 .status {
   font-weight: bold;
-  color: #0f0;
+  color: rgb(255, 0, 0);
   cursor: pointer;
   font-size: 16px;
 }
@@ -376,4 +376,148 @@ footer h2 {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+.price-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.price-modal[style*="display: flex"] {
+  opacity: 1;
+}
+
+.price-box {
+  background: linear-gradient(145deg, #1e1e2f, #2c2c3f);
+  border: 2px solid #00eaff;
+  border-radius: 16px;
+  padding: 25px 30px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(0,234,255,0.4);
+  animation: fadeIn 0.25s ease;
+  min-width: 300px;
+}
+
+.price-box h2 {
+  color: #00eaff;
+  margin-bottom: 10px;
+}
+
+.price-box p {
+  font-weight: bold;
+  color: #f1f1f1;
+  margin-bottom: 10px;
+}
+
+.price-box input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  margin-bottom: 15px;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0,234,255,0.3);
+}
+
+.price-btns {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.price-btns button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+  transition: 0.3s;
+}
+
+#savePrice { background: #00eaff; }
+#savePrice:hover { background: #00bcd4; }
+#cancelPrice { background: #444; }
+#cancelPrice:hover { background: #222; }
+[contenteditable="true"] {
+  background: rgba(0, 234, 255, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(0, 234, 255, 0.6);
+}
+body.modal-active {
+  filter: blur(6px);
+  transition: filter 0.3s ease;
+}
+
+#loginModal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+}
+
+#loginModal .modal-content {
+  background: #111;
+  padding: 24px 32px;
+  border-radius: 16px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+  color: white;
+  max-width: 320px;
+  width: 100%;
+  z-index: 10000;
+}
+#customAlert {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#customAlert.hidden {
+  display: none;
+}
+
+.alert-box {
+  background: linear-gradient(135deg, #00eaff, #0077ff);
+  color: white;
+  font-weight: 600;
+  padding: 14px 22px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 234, 255, 0.4);
+  animation: fadeInUp 0.4s ease, fadeOut 0.5s ease 2.5s forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
