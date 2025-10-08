@@ -9,7 +9,6 @@ app.use(express.static("./"));
 
 const DATA_FILE = "./data.json";
 
-// Lấy dữ liệu
 app.get("/api/data", (req, res) => {
   fs.readFile(DATA_FILE, "utf8", (err, data) => {
     if (err) return res.status(500).json({ error: "Không thể đọc dữ liệu" });
@@ -17,7 +16,6 @@ app.get("/api/data", (req, res) => {
   });
 });
 
-// Ghi dữ liệu
 app.post("/api/data", (req, res) => {
   fs.writeFile(DATA_FILE, JSON.stringify(req.body, null, 2), err => {
     if (err) return res.status(500).json({ error: "Không thể ghi dữ liệu" });
@@ -25,7 +23,7 @@ app.post("/api/data", (req, res) => {
   });
 });
 
-// Chạy server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server chạy tại: http://localhost:${PORT}`));
+
 
