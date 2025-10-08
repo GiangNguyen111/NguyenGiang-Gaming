@@ -1,85 +1,77 @@
 import express from "express";
-import fs from "fs";
 import cors from "cors";
-import path from "path";
+import Database from "better-sqlite3";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("./"));
 
-// 📁 Render chỉ cho ghi trong thư mục /tmp
-const DATA_FILE = "/tmp/data.json";
+// ⚙️ Khởi tạo database
+const db = new Database("data.db");
 
-// 🧩 Tạo file mặc định nếu chưa có
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(
-    DATA_FILE,
-    JSON.stringify({ status: "ONLINE", items: {}, texts: {} }, null, 2)
-  );
-  console.log("🆕 Đã tạo file data.json mặc định tại /tmp");
-}
+// 🧩 Tạo bảng lưu trữ nếu chưa có
+db.prepare("CREATE TABLE IF NOT EXISTS store (id TEXT PRIMARY KEY, json TEXT)").run();
 
-// 🔒 Hàm kiểm tra object an toàn
-const safeObj = obj =>
-  obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
-
-// 📥 API: Lấy dữ liệu
+// 📥 API lấy dữ liệu
 app.get("/api/data", (req, res) => {
-  fs.readFile(DATA_FILE, "utf8", (err, data) => {
-    if (err) {
-      console.error("❌ Lỗi đọc file:", err);
-      return res.status(500).json({ error: "Không thể đọc dữ liệu" });
+  try {
+    const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
+    if (row) {
+      res.json(JSON.parse(row.json));
+    } else {
+      const defaultData = { status: "ONLINE", items: {}, texts: {} };
+      res.json(defaultData);
     }
-    try {
-      res.json(JSON.parse(data));
-    } catch (e) {
-      console.warn("⚠️ Lỗi parse JSON, trả về mặc định");
-      res.json({ status: "ONLINE", items: {}, texts: {} });
-    }
-  });
+  } catch (err) {
+    console.error("❌ Lỗi đọc DB:", err);
+    res.status(500).json({ error: "Không thể đọc dữ liệu" });
+  }
 });
 
-// 💾 API: Ghi dữ liệu (giá + chữ)
+// 💾 API ghi dữ liệu
 app.post("/api/data", (req, res) => {
-  fs.readFile(DATA_FILE, "utf8", (err, oldData) => {
+  try {
+    const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
     let current = { status: "ONLINE", items: {}, texts: {} };
 
-    if (!err && oldData) {
+    if (row) {
       try {
-        current = JSON.parse(oldData);
-      } catch (e) {
-        console.warn("⚠️ File data.json lỗi JSON, khởi tạo lại.");
+        current = JSON.parse(row.json);
+      } catch {
+        console.warn("⚠️ Lỗi parse JSON cũ, tạo mới");
       }
     }
 
-    console.log("📦 Dữ liệu nhận được:", req.body);
-
-    // 🔁 Gộp dữ liệu cũ và mới an toàn
+    // Hợp nhất dữ liệu cũ và mới
+    const safeObj = (obj) =>
+      obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
     const merged = {
       status: req.body.status || current.status,
       items: { ...safeObj(current.items), ...safeObj(req.body.items) },
-      texts: { ...safeObj(current.texts), ...safeObj(req.body.texts) }
+      texts: { ...safeObj(current.texts), ...safeObj(req.body.texts) },
     };
 
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2));
-      console.log("✅ Đã lưu thay đổi:", merged);
-      res.json({ success: true });
-    } catch (err2) {
-      console.error("❌ Không thể ghi file:", err2);
-      res.status(500).json({ error: "Không thể ghi dữ liệu" });
-    }
-  });
+    db.prepare(
+      "INSERT OR REPLACE INTO store (id, json) VALUES ('main', ?)"
+    ).run(JSON.stringify(merged, null, 2));
+
+    console.log("✅ Đã lưu vào database:", merged);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Không thể ghi dữ liệu:", err);
+    res.status(500).json({ error: "Không thể ghi dữ liệu" });
+  }
 });
 
-// 🧾 API kiểm tra trực tiếp file đang lưu
+// 🧾 API debug để xem dữ liệu thật
 app.get("/api/debug", (req, res) => {
-  res.sendFile(path.resolve(DATA_FILE));
+  const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
+  res.type("application/json").send(row ? row.json : "{}");
 });
 
-// 🚀 Chạy server
+// 🚀 Khởi động server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
-  console.log(`✅ Server đang chạy tại: http://localhost:${PORT}`)
+  console.log(`✅ Server chạy tại: http://localhost:${PORT}`)
 );
