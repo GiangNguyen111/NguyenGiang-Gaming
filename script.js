@@ -14,7 +14,7 @@ const loginMsg = document.getElementById("loginMsg");
 const togglePass = document.getElementById("togglePass");
 const passwordInput = document.getElementById("password");
 
-const API_URL = "https://nguyengiang-gaming.onrender.com/api/data";
+const API_URL = "/api/data"; // Dùng local hoặc deploy URL
 
 let currentData = {};
 let editingItem = "";
@@ -34,7 +34,7 @@ updateDateTime();
 // ======================================================
 async function getDataFromServer() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL, { cache: "no-store" });
     return await res.json();
   } catch (err) {
     console.error("❌ Lỗi lấy dữ liệu từ server:", err);
@@ -67,11 +67,9 @@ function setStatus(state) {
   if (state === "ONLINE") {
     statusBox.textContent = "🟢 ONLINE";
     statusBox.style.color = "#0f0";
-    localStorage.setItem("status", "ONLINE");
   } else {
     statusBox.textContent = "🔴 OFFLINE";
     statusBox.style.color = "red";
-    localStorage.setItem("status", "OFFLINE");
   }
 }
 
@@ -84,8 +82,6 @@ window.addEventListener("load", async () => {
 
   if (data && data.status) {
     setStatus(data.status);
-  } else {
-    setStatus(localStorage.getItem("status") || "ONLINE");
   }
 
   // 💰 Hiển thị giá
@@ -278,30 +274,64 @@ function showSaveButton() {
 // 💾 Lưu toàn bộ thay đổi (cả chữ và giá)
 // ======================================================
 saveAllBtn.addEventListener("click", async () => {
-  // Gom toàn bộ giá hiện tại
-  const items = {};
-  document.querySelectorAll(".price").forEach((el) => {
-    const itemKey =
-      el.previousElementSibling?.textContent.trim() || el.dataset.editId;
-    items[itemKey] = el.textContent.trim();
-  });
+  try {
+    // Gom toàn bộ giá hiện tại
+    const items = {};
+    document.querySelectorAll(".price").forEach((el) => {
+      const itemKey =
+        el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+      items[itemKey] = el.textContent.trim();
+    });
 
-  // Gom toàn bộ text hiện tại
-  const texts = {};
-  document.querySelectorAll("[data-edit-id]").forEach((el) => {
-    texts[el.dataset.editId] = el.textContent.trim();
-  });
+    // Gom toàn bộ text hiện tại
+    const texts = {};
+    document.querySelectorAll("[data-edit-id]").forEach((el) => {
+      texts[el.dataset.editId] = el.textContent.trim();
+    });
 
-  // Cập nhật dữ liệu tổng
-  currentData.items = items;
-  currentData.texts = texts;
+    // Cập nhật dữ liệu tổng
+    currentData.items = items;
+    currentData.texts = texts;
 
-  // Lưu lên server
-  await saveDataToServer(currentData);
+    // Lưu lên server
+    await saveDataToServer(currentData);
 
-  hasChanges = false;
-  saveAllBtn.style.display = "none";
-  showCustomAlert("✅ Đã lưu thay đổi thành công!");
+    // 🔄 Reload lại từ server để chắc chắn đồng bộ
+    const newData = await getDataFromServer();
+    if (newData) {
+      currentData = newData;
+
+      // Cập nhật lại trạng thái ONLINE / OFFLINE
+      setStatus(newData.status);
+
+      // Cập nhật lại giá
+      if (newData.items) {
+        document.querySelectorAll(".price").forEach((el) => {
+          const itemKey =
+            el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+          if (newData.items[itemKey]) {
+            el.textContent = newData.items[itemKey];
+          }
+        });
+      }
+
+      // Cập nhật lại chữ
+      if (newData.texts) {
+        for (const [key, value] of Object.entries(newData.texts)) {
+          const el = document.querySelector(`[data-edit-id='${key}']`);
+          if (el) el.textContent = value;
+        }
+      }
+    }
+
+    // Reset trạng thái thay đổi
+    hasChanges = false;
+    saveAllBtn.style.display = "none";
+    showCustomAlert("✅ Đã lưu thay đổi thành công!");
+  } catch (err) {
+    console.error("❌ Lỗi khi lưu dữ liệu:", err);
+    showCustomAlert("❌ Không thể lưu dữ liệu!");
+  }
 });
 
 // ======================================================
