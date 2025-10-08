@@ -275,47 +275,44 @@ function showSaveButton() {
 }
 
 // ======================================================
-// 🧩 Lưu toàn bộ thay đổi
+// 💾 Lưu toàn bộ thay đổi (cả chữ và giá)
 // ======================================================
 saveAllBtn.addEventListener("click", async () => {
-  const prices = {};
+  // Gom toàn bộ giá hiện tại
+  const items = {};
   document.querySelectorAll(".price").forEach((el) => {
-    const key =
+    const itemKey =
       el.previousElementSibling?.textContent.trim() || el.dataset.editId;
-    prices[key] = el.textContent.trim();
+    items[itemKey] = el.textContent.trim();
   });
 
+  // Gom toàn bộ text hiện tại
   const texts = {};
   document.querySelectorAll("[data-edit-id]").forEach((el) => {
     texts[el.dataset.editId] = el.textContent.trim();
   });
 
-  const payload = {
-    status: statusBox.textContent.includes("ONLINE") ? "ONLINE" : "OFFLINE",
-    items: prices,
-    texts: texts,
-  };
+  // Cập nhật dữ liệu tổng
+  currentData.items = items;
+  currentData.texts = texts;
 
-  const result = await saveDataToServer(payload);
-  if (result?.success) showCustomAlert("✅ Đã lưu thay đổi lên server!");
+  // Lưu lên server
+  await saveDataToServer(currentData);
 
   hasChanges = false;
   saveAllBtn.style.display = "none";
+  showCustomAlert("✅ Đã lưu thay đổi thành công!");
 });
 
 // ======================================================
-// 🔔 Hộp thông báo tuỳ chỉnh
+// 🔔 Custom Alert
 // ======================================================
-function showCustomAlert(message) {
+function showCustomAlert(msg) {
   const alertBox = document.getElementById("customAlert");
-  if (alertBox) {
-    const msg = document.getElementById("alertMessage");
-    msg.textContent = message;
-    alertBox.classList.remove("hidden");
-    setTimeout(() => {
-      alertBox.classList.add("hidden");
-    }, 3000);
-  } else {
-    alert(message);
-  }
+  const alertMessage = document.getElementById("alertMessage");
+  alertMessage.textContent = msg;
+  alertBox.classList.remove("hidden");
+  setTimeout(() => {
+    alertBox.classList.add("hidden");
+  }, 2500);
 }
