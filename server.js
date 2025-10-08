@@ -8,10 +8,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("./"));
 
-// 🧠 Render chỉ cho ghi tạm trong /tmp
+// 📁 Render chỉ cho ghi trong thư mục /tmp
 const DATA_FILE = "/tmp/data.json";
 
-// 🧩 Nếu file chưa có, tạo mới
+// 🧩 Tạo file mặc định nếu chưa có
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(
     DATA_FILE,
@@ -20,23 +20,27 @@ if (!fs.existsSync(DATA_FILE)) {
   console.log("🆕 Đã tạo file data.json mặc định tại /tmp");
 }
 
-// 📥 API: Lấy dữ liệu hiện tại
+// 🔒 Hàm kiểm tra object an toàn
+const safeObj = obj =>
+  obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+
+// 📥 API: Lấy dữ liệu
 app.get("/api/data", (req, res) => {
   fs.readFile(DATA_FILE, "utf8", (err, data) => {
     if (err) {
-      console.error("❌ Lỗi đọc data.json:", err);
+      console.error("❌ Lỗi đọc file:", err);
       return res.status(500).json({ error: "Không thể đọc dữ liệu" });
     }
     try {
       res.json(JSON.parse(data));
     } catch (e) {
-      console.error("⚠️ Lỗi parse JSON:", e);
+      console.warn("⚠️ Lỗi parse JSON, trả về mặc định");
       res.json({ status: "ONLINE", items: {}, texts: {} });
     }
   });
 });
 
-// 💾 API: Ghi dữ liệu (giá + chữ + trạng thái)
+// 💾 API: Ghi dữ liệu (giá + chữ)
 app.post("/api/data", (req, res) => {
   fs.readFile(DATA_FILE, "utf8", (err, oldData) => {
     let current = { status: "ONLINE", items: {}, texts: {} };
@@ -45,15 +49,17 @@ app.post("/api/data", (req, res) => {
       try {
         current = JSON.parse(oldData);
       } catch (e) {
-        console.warn("⚠️ Lỗi đọc data cũ, tạo mới.");
+        console.warn("⚠️ File data.json lỗi JSON, khởi tạo lại.");
       }
     }
 
-    // 🔁 Gộp dữ liệu cũ và mới (không mất phần chưa sửa)
+    console.log("📦 Dữ liệu nhận được:", req.body);
+
+    // 🔁 Gộp dữ liệu cũ và mới an toàn
     const merged = {
       status: req.body.status || current.status,
-      items: { ...current.items, ...req.body.items },
-      texts: { ...current.texts, ...req.body.texts }
+      items: { ...safeObj(current.items), ...safeObj(req.body.items) },
+      texts: { ...safeObj(current.texts), ...safeObj(req.body.texts) }
     };
 
     try {
@@ -67,11 +73,13 @@ app.post("/api/data", (req, res) => {
   });
 });
 
-// 🧾 Route kiểm tra file thật (debug)
+// 🧾 API kiểm tra trực tiếp file đang lưu
 app.get("/api/debug", (req, res) => {
   res.sendFile(path.resolve(DATA_FILE));
 });
 
 // 🚀 Chạy server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server chạy tại: http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`✅ Server đang chạy tại: http://localhost:${PORT}`)
+);
