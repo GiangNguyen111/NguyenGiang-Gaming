@@ -1,3 +1,7 @@
+// ======================================================
+// 🚀 NguyenGiang Gaming - Server Express + SQLite
+// ======================================================
+
 import express from "express";
 import cors from "cors";
 import Database from "better-sqlite3";
@@ -11,7 +15,9 @@ app.use(express.static("./"));
 const db = new Database("data.db");
 
 // 🧩 Tạo bảng lưu trữ nếu chưa tồn tại
-db.prepare("CREATE TABLE IF NOT EXISTS store (id TEXT PRIMARY KEY, json TEXT)").run();
+db.prepare(
+  "CREATE TABLE IF NOT EXISTS store (id TEXT PRIMARY KEY, json TEXT)"
+).run();
 
 // 📥 API lấy dữ liệu
 app.get("/api/data", (req, res) => {
@@ -29,10 +35,10 @@ app.get("/api/data", (req, res) => {
   }
 });
 
-// 💾 API ghi dữ liệu (có chống lỗi mất chữ/giá)
+// 💾 API ghi dữ liệu (merge cả chữ + giá)
 app.post("/api/data", (req, res) => {
   try {
-    // Lấy dữ liệu cũ trong DB (nếu có)
+    // Lấy dữ liệu cũ trong DB
     const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
     let current = { status: "ONLINE", items: {}, texts: {} };
 
@@ -44,19 +50,11 @@ app.post("/api/data", (req, res) => {
       }
     }
 
-    // Hàm kiểm tra object hợp lệ
-    const safeObj = (obj) =>
-      obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
-
-    // ✅ Gộp cẩn thận, tránh mất dữ liệu khi req.body rỗng hoặc undefined
+    // Luôn merge đầy đủ
     const merged = {
-      status: req.body.status || current.status,
-      items: Object.keys(safeObj(req.body.items)).length
-        ? { ...current.items, ...safeObj(req.body.items) }
-        : current.items,
-      texts: Object.keys(safeObj(req.body.texts)).length
-        ? { ...current.texts, ...safeObj(req.body.texts) }
-        : current.texts,
+      status: req.body.status ?? current.status,
+      items: { ...current.items, ...(req.body.items || {}) },
+      texts: { ...current.texts, ...(req.body.texts || {}) },
     };
 
     // Ghi lại vào database
@@ -65,7 +63,7 @@ app.post("/api/data", (req, res) => {
     ).run(JSON.stringify(merged, null, 2));
 
     console.log("✅ Đã lưu vào database:", merged);
-    res.json({ success: true });
+    res.json(merged);
   } catch (err) {
     console.error("❌ Không thể ghi dữ liệu:", err);
     res.status(500).json({ error: "Không thể ghi dữ liệu" });
