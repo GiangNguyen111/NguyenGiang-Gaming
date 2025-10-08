@@ -7,6 +7,7 @@ const loginMsg = document.getElementById("loginMsg");
 const togglePass = document.getElementById("togglePass");
 const passwordInput = document.getElementById("password");
 
+// 🕒 Cập nhật ngày giờ
 function updateDateTime() {
   const now = new Date();
   const date = now.toLocaleDateString("vi-VN", {
@@ -24,6 +25,7 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
+// ⚙️ Đặt trạng thái ONLINE / OFFLINE
 function setStatus(state) {
   if (state === "ONLINE") {
     statusBox.textContent = "🟢 ONLINE";
@@ -36,25 +38,40 @@ function setStatus(state) {
   }
 }
 
-window.addEventListener("load", () => {
-  const savedStatus = localStorage.getItem("status");
-  setStatus(savedStatus || "ONLINE");
-});
-
-statusBox.addEventListener("click", () => {
-  if (adminLevel === 0) {
-    loginModal.style.display = "flex";
+// 🟩 Khi tải trang, lấy trạng thái đã lưu
+window.addEventListener("load", async () => {
+  // Lấy trạng thái từ server
+  const data = await getDataFromServer();
+  if (data && data.status) {
+    setStatus(data.status);
   } else {
-    if (statusBox.textContent.includes("ONLINE")) setStatus("OFFLINE");
-    else setStatus("ONLINE");
+    const savedStatus = localStorage.getItem("status");
+    setStatus(savedStatus || "ONLINE");
   }
 });
 
+// 🟢 Sự kiện click đổi trạng thái
+statusBox.addEventListener("click", async () => {
+  if (adminLevel === 0) {
+    loginModal.style.display = "flex";
+  } else {
+    if (statusBox.textContent.includes("ONLINE")) {
+      setStatus("OFFLINE");
+      await saveDataToServer({ status: "OFFLINE" });
+    } else {
+      setStatus("ONLINE");
+      await saveDataToServer({ status: "ONLINE" });
+    }
+  }
+});
+
+// 🔻 Đóng form login
 closeLogin.addEventListener("click", () => {
   loginModal.style.display = "none";
   loginMsg.textContent = "";
 });
 
+// 🟡 Xử lý login
 function handleLogin() {
   const user = document.getElementById("username").value.trim();
   const pass = passwordInput.value.trim();
@@ -76,6 +93,7 @@ document.getElementById("loginModal").addEventListener("keypress", e => {
 });
 submitLogin.addEventListener("click", handleLogin);
 
+// 🧩 Sau khi login
 function afterLogin() {
   loginModal.style.display = "none";
   loginMsg.textContent = "";
@@ -83,6 +101,7 @@ function afterLogin() {
   enablePriceEditing();
 }
 
+// 👁 Toggle mật khẩu
 togglePass.addEventListener("click", () => {
   passwordInput.type = passwordInput.type === "password" ? "text" : "password";
   togglePass.innerHTML =
@@ -91,6 +110,7 @@ togglePass.addEventListener("click", () => {
       : '<i class="fa-solid fa-eye"></i>';
 });
 
+// 💰 Chỉnh giá vật phẩm
 function enablePriceEditing() {
   const priceModal = document.getElementById("priceModal");
   const priceItemName = document.getElementById("priceItemName");
@@ -124,7 +144,7 @@ function enablePriceEditing() {
     }
   });
 
-  savePrice.addEventListener("click", () => {
+  savePrice.addEventListener("click", async () => {
     const newPrice = newPriceInput.value.trim();
     if (newPrice && currentPriceEl) {
       const itemKey =
@@ -132,6 +152,12 @@ function enablePriceEditing() {
         currentPriceEl.dataset.editId;
       currentPriceEl.textContent = newPrice;
       localStorage.setItem("price_" + itemKey, newPrice);
+      await saveDataToServer({
+        status: statusBox.textContent.includes("ONLINE")
+          ? "ONLINE"
+          : "OFFLINE",
+        edited: true
+      });
     }
     closeModal();
   });
@@ -148,6 +174,7 @@ function enablePriceEditing() {
   }
 }
 
+// 🧠 Tải lại giá từ localStorage
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".price").forEach(el => {
     const itemKey =
@@ -157,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// 🖊️ Chỉnh sửa văn bản trực tiếp
 function enableTextEditing() {
   const selector =
     "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
@@ -202,6 +230,7 @@ function enableTextEditing() {
   });
 }
 
+// 🔄 Tải lại nội dung đã chỉnh sửa
 document.addEventListener("DOMContentLoaded", () => {
   const selector =
     "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
@@ -216,6 +245,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// 🔔 Hiển thị thông báo tùy chỉnh
 function showCustomAlert(message) {
   const alertBox = document.getElementById("customAlert");
   const msg = document.getElementById("alertMessage");
@@ -226,4 +257,27 @@ function showCustomAlert(message) {
   setTimeout(() => {
     alertBox.classList.add("hidden");
   }, 3000);
+}
+
+// 🧠 Kết nối server — đọc / ghi trạng thái
+async function getDataFromServer() {
+  try {
+    const res = await fetch("https://nguyengiang-gaming.onrender.com/api/data");
+    return res.json();
+  } catch (err) {
+    console.error("Lỗi lấy dữ liệu từ server:", err);
+    return null;
+  }
+}
+
+async function saveDataToServer(data) {
+  try {
+    await fetch("https://nguyengiang-gaming.onrender.com/api/data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+  } catch (err) {
+    console.error("Lỗi lưu dữ liệu lên server:", err);
+  }
 }
