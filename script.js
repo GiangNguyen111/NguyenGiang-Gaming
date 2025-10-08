@@ -38,9 +38,8 @@ function setStatus(state) {
   }
 }
 
-// 🟩 Khi tải trang, lấy trạng thái đã lưu
+// 🟩 Khi tải trang, lấy dữ liệu từ server
 window.addEventListener("load", async () => {
-  // Lấy trạng thái từ server
   const data = await getDataFromServer();
   if (data && data.status) {
     setStatus(data.status);
@@ -48,9 +47,20 @@ window.addEventListener("load", async () => {
     const savedStatus = localStorage.getItem("status");
     setStatus(savedStatus || "ONLINE");
   }
+
+  // 💰 Cập nhật giá từ server (nếu có)
+  if (data && data.items) {
+    for (const [key, price] of Object.entries(data.items)) {
+      document.querySelectorAll(".price").forEach(el => {
+        const itemKey =
+          el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+        if (itemKey === key) el.textContent = price;
+      });
+    }
+  }
 });
 
-// 🟢 Sự kiện click đổi trạng thái
+// 🟢 Click đổi trạng thái
 statusBox.addEventListener("click", async () => {
   if (adminLevel === 0) {
     loginModal.style.display = "flex";
@@ -65,7 +75,7 @@ statusBox.addEventListener("click", async () => {
   }
 });
 
-// 🔻 Đóng form login
+// 🔻 Đóng login
 closeLogin.addEventListener("click", () => {
   loginModal.style.display = "none";
   loginMsg.textContent = "";
@@ -75,7 +85,6 @@ closeLogin.addEventListener("click", () => {
 function handleLogin() {
   const user = document.getElementById("username").value.trim();
   const pass = passwordInput.value.trim();
-
   if (user === "nguyengiang200722" && pass === "Zxc1230@@") {
     adminLevel = 1;
     showCustomAlert("✅ Đăng nhập thành công!");
@@ -84,7 +93,6 @@ function handleLogin() {
     loginMsg.textContent = "❌ Sai tài khoản hoặc mật khẩu!";
   }
 }
-
 document.getElementById("loginModal").addEventListener("keypress", e => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -110,14 +118,13 @@ togglePass.addEventListener("click", () => {
       : '<i class="fa-solid fa-eye"></i>';
 });
 
-// 💰 Chỉnh giá vật phẩm
+// 💰 Chỉnh giá vật phẩm (lưu server)
 function enablePriceEditing() {
   const priceModal = document.getElementById("priceModal");
   const priceItemName = document.getElementById("priceItemName");
   const newPriceInput = document.getElementById("newPriceInput");
   const savePrice = document.getElementById("savePrice");
   const cancelPrice = document.getElementById("cancelPrice");
-
   let currentPriceEl = null;
 
   document.querySelectorAll(".price").forEach(el => {
@@ -126,7 +133,6 @@ function enablePriceEditing() {
         alert("❌ Bạn cần đăng nhập Admin để chỉnh giá!");
         return;
       }
-
       currentPriceEl = el;
       priceItemName.textContent =
         el.previousElementSibling?.textContent || "Sản phẩm";
@@ -152,11 +158,18 @@ function enablePriceEditing() {
         currentPriceEl.dataset.editId;
       currentPriceEl.textContent = newPrice;
       localStorage.setItem("price_" + itemKey, newPrice);
+
+      // 🆕 Gửi toàn bộ giá hiện tại lên server
+      const prices = {};
+      document.querySelectorAll(".price").forEach(el => {
+        const key =
+          el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+        prices[key] = el.textContent.trim();
+      });
+
       await saveDataToServer({
-        status: statusBox.textContent.includes("ONLINE")
-          ? "ONLINE"
-          : "OFFLINE",
-        edited: true
+        status: statusBox.textContent.includes("ONLINE") ? "ONLINE" : "OFFLINE",
+        items: prices
       });
     }
     closeModal();
@@ -174,7 +187,7 @@ function enablePriceEditing() {
   }
 }
 
-// 🧠 Tải lại giá từ localStorage
+// 🧠 Tải lại giá từ localStorage (dự phòng)
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".price").forEach(el => {
     const itemKey =
@@ -184,23 +197,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// 🖊️ Chỉnh sửa văn bản trực tiếp
+// 🖊️ Chỉnh văn bản
 function enableTextEditing() {
   const selector =
     "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
-
   document.querySelectorAll(selector).forEach((el, index) => {
-    if (!el.dataset.editId) {
+    if (!el.dataset.editId)
       el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
-    }
     el.setAttribute("data-original", el.textContent);
   });
-
   document.querySelectorAll(selector).forEach(el => {
     el.addEventListener("click", () => {
       if (adminLevel === 0) return;
       if (el.isContentEditable) return;
-
       el.contentEditable = "true";
       el.style.outline = "2px dashed #00eaff";
       el.focus();
@@ -210,7 +219,6 @@ function enableTextEditing() {
           el.blur();
         }
       });
-
       el.addEventListener(
         "blur",
         () => {
@@ -219,7 +227,6 @@ function enableTextEditing() {
           const key = "text_edit_" + el.dataset.editId;
           const original = el.getAttribute("data-original") || "";
           const current = el.textContent.trim();
-
           if (current !== original.trim()) {
             localStorage.setItem(key, current);
           }
@@ -230,7 +237,7 @@ function enableTextEditing() {
   });
 }
 
-// 🔄 Tải lại nội dung đã chỉnh sửa
+// 🔄 Tải lại nội dung đã chỉnh
 document.addEventListener("DOMContentLoaded", () => {
   const selector =
     "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
@@ -238,28 +245,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!el.dataset.editId)
       el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
     el.setAttribute("data-original", el.textContent);
-
     const saved = localStorage.getItem("text_edit_" + el.dataset.editId);
-    if (saved !== null && saved.trim() !== "") {
-      el.textContent = saved;
-    }
+    if (saved !== null && saved.trim() !== "") el.textContent = saved;
   });
 });
 
-// 🔔 Hiển thị thông báo tùy chỉnh
+// 🔔 Thông báo tùy chỉnh
 function showCustomAlert(message) {
   const alertBox = document.getElementById("customAlert");
   const msg = document.getElementById("alertMessage");
   msg.textContent = message;
-
   alertBox.classList.remove("hidden");
-
   setTimeout(() => {
     alertBox.classList.add("hidden");
   }, 3000);
 }
 
-// 🧠 Kết nối server — đọc / ghi trạng thái
+// 🧠 Server — đọc / ghi dữ liệu thật
 async function getDataFromServer() {
   try {
     const res = await fetch("https://nguyengiang-gaming.onrender.com/api/data");
@@ -277,31 +279,8 @@ async function saveDataToServer(data) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+    console.log("✅ Dữ liệu đã lưu thành công lên server!");
   } catch (err) {
     console.error("Lỗi lưu dữ liệu lên server:", err);
-  }
-}
-const API_URL = window.location.origin + "/api/data";
-
-async function getDataFromServer() {
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("Server not OK");
-    return await res.json();
-  } catch (err) {
-    console.error(err);
-    return { status: "OFFLINE", items: [] };
-  }
-}
-
-async function saveDataToServer(data) {
-  try {
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-  } catch (err) {
-    console.error(err);
   }
 }
