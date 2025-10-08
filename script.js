@@ -1,3 +1,7 @@
+// ======================================================
+// 🧩 NguyenGiang Gaming - Script chỉnh giá & chữ (admin)
+// ======================================================
+
 let adminLevel = 0;
 let hasChanges = false; // 🆕 Theo dõi có thay đổi chữ hoặc giá
 
@@ -10,25 +14,55 @@ const loginMsg = document.getElementById("loginMsg");
 const togglePass = document.getElementById("togglePass");
 const passwordInput = document.getElementById("password");
 
-// 🕒 Cập nhật ngày giờ
+const API_URL = "https://nguyengiang-gaming.onrender.com/api/data";
+
+let currentData = {};
+let editingItem = "";
+
+// ======================================================
+// 🕒 Cập nhật thời gian thực
+// ======================================================
 function updateDateTime() {
   const now = new Date();
-  const date = now.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
-  const time = now.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
-  document.getElementById("datetime").textContent = `${date} – ${time}`;
+  document.getElementById("datetime").textContent = now.toLocaleString("vi-VN");
 }
-updateDateTime();
 setInterval(updateDateTime, 1000);
+updateDateTime();
 
-// ⚙️ Đặt trạng thái ONLINE / OFFLINE
+// ======================================================
+// 📥 Lấy dữ liệu từ server
+// ======================================================
+async function getDataFromServer() {
+  try {
+    const res = await fetch(API_URL);
+    return await res.json();
+  } catch (err) {
+    console.error("❌ Lỗi lấy dữ liệu từ server:", err);
+    return null;
+  }
+}
+
+// ======================================================
+// 💾 Gửi dữ liệu lên server
+// ======================================================
+async function saveDataToServer(data) {
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    console.log("✅ Dữ liệu đã lưu lên server thành công!");
+    return await res.json();
+  } catch (err) {
+    console.error("❌ Lỗi lưu dữ liệu lên server:", err);
+    return null;
+  }
+}
+
+// ======================================================
+// 🟢 Hiển thị trạng thái ONLINE / OFFLINE
+// ======================================================
 function setStatus(state) {
   if (state === "ONLINE") {
     statusBox.textContent = "🟢 ONLINE";
@@ -41,21 +75,23 @@ function setStatus(state) {
   }
 }
 
-// 🟩 Khi tải trang, lấy dữ liệu từ server
+// ======================================================
+// 🚀 Khi tải trang
+// ======================================================
 window.addEventListener("load", async () => {
   const data = await getDataFromServer();
+  currentData = data || { status: "ONLINE", items: {}, texts: {} };
 
   if (data && data.status) {
     setStatus(data.status);
   } else {
-    const savedStatus = localStorage.getItem("status");
-    setStatus(savedStatus || "ONLINE");
+    setStatus(localStorage.getItem("status") || "ONLINE");
   }
 
-  // 💰 Cập nhật giá từ server
+  // 💰 Hiển thị giá
   if (data && data.items) {
     for (const [key, price] of Object.entries(data.items)) {
-      document.querySelectorAll(".price").forEach(el => {
+      document.querySelectorAll(".price").forEach((el) => {
         const itemKey =
           el.previousElementSibling?.textContent.trim() || el.dataset.editId;
         if (itemKey === key) el.textContent = price;
@@ -63,7 +99,7 @@ window.addEventListener("load", async () => {
     }
   }
 
-  // 📝 Cập nhật chữ từ server
+  // 📝 Hiển thị chữ
   if (data && data.texts) {
     for (const [key, value] of Object.entries(data.texts)) {
       const el = document.querySelector(`[data-edit-id='${key}']`);
@@ -72,28 +108,29 @@ window.addEventListener("load", async () => {
   }
 });
 
+// ======================================================
 // 🟢 Click đổi trạng thái
+// ======================================================
 statusBox.addEventListener("click", async () => {
   if (adminLevel === 0) {
     loginModal.style.display = "flex";
   } else {
-    if (statusBox.textContent.includes("ONLINE")) {
-      setStatus("OFFLINE");
-      await saveDataToServer({ status: "OFFLINE" });
-    } else {
-      setStatus("ONLINE");
-      await saveDataToServer({ status: "ONLINE" });
-    }
+    const newStatus = statusBox.textContent.includes("ONLINE")
+      ? "OFFLINE"
+      : "ONLINE";
+    setStatus(newStatus);
+    await saveDataToServer({ ...currentData, status: newStatus });
   }
 });
 
-// 🔻 Đóng form login
+// ======================================================
+// 🔐 Xử lý đăng nhập
+// ======================================================
 closeLogin.addEventListener("click", () => {
   loginModal.style.display = "none";
   loginMsg.textContent = "";
 });
 
-// 🟡 Xử lý login
 function handleLogin() {
   const user = document.getElementById("username").value.trim();
   const pass = passwordInput.value.trim();
@@ -107,24 +144,15 @@ function handleLogin() {
   }
 }
 
-document.getElementById("loginModal").addEventListener("keypress", e => {
+submitLogin.addEventListener("click", handleLogin);
+document.getElementById("loginModal").addEventListener("keypress", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
     handleLogin();
   }
 });
-submitLogin.addEventListener("click", handleLogin);
 
-// 🧩 Sau khi login
-function afterLogin() {
-  loginModal.style.display = "none";
-  loginMsg.textContent = "";
-  enableTextEditing();
-  enablePriceEditing();
-}
-
-// 👁 Toggle mật khẩu
-togglePass.addEventListener("click", () => {
+togglePass?.addEventListener("click", () => {
   passwordInput.type = passwordInput.type === "password" ? "text" : "password";
   togglePass.innerHTML =
     passwordInput.type === "text"
@@ -132,7 +160,16 @@ togglePass.addEventListener("click", () => {
       : '<i class="fa-solid fa-eye"></i>';
 });
 
-// 💰 Chỉnh giá vật phẩm (lưu server)
+function afterLogin() {
+  loginModal.style.display = "none";
+  loginMsg.textContent = "";
+  enableTextEditing();
+  enablePriceEditing();
+}
+
+// ======================================================
+// 💰 Chỉnh giá vật phẩm
+// ======================================================
 function enablePriceEditing() {
   const priceModal = document.getElementById("priceModal");
   const priceItemName = document.getElementById("priceItemName");
@@ -141,7 +178,7 @@ function enablePriceEditing() {
   const cancelPrice = document.getElementById("cancelPrice");
   let currentPriceEl = null;
 
-  document.querySelectorAll(".price").forEach(el => {
+  document.querySelectorAll(".price").forEach((el) => {
     el.addEventListener("click", () => {
       if (adminLevel < 1) {
         alert("❌ Bạn cần đăng nhập Admin để chỉnh giá!");
@@ -157,28 +194,28 @@ function enablePriceEditing() {
     });
   });
 
-  newPriceInput.addEventListener("keypress", e => {
+  newPriceInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       savePrice.click();
     }
   });
 
-  savePrice.addEventListener("click", async () => {
+  savePrice.addEventListener("click", () => {
     const newPrice = newPriceInput.value.trim();
     if (newPrice && currentPriceEl) {
       const itemKey =
         currentPriceEl.previousElementSibling?.textContent.trim() ||
         currentPriceEl.dataset.editId;
       currentPriceEl.textContent = newPrice;
-      hasChanges = true; // 🆕 đánh dấu có thay đổi
+      hasChanges = true;
       showSaveButton();
     }
     closeModal();
   });
 
   cancelPrice.addEventListener("click", closeModal);
-  priceModal.addEventListener("click", e => {
+  priceModal.addEventListener("click", (e) => {
     if (e.target === priceModal) closeModal();
   });
 
@@ -189,34 +226,26 @@ function enablePriceEditing() {
   }
 }
 
-// 🧠 Tải lại giá từ localStorage (dự phòng)
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".price").forEach(el => {
-    const itemKey =
-      el.previousElementSibling?.textContent.trim() || el.dataset.editId;
-    const savedPrice = localStorage.getItem("price_" + itemKey);
-    if (savedPrice) el.textContent = savedPrice;
-  });
-});
-
-// 🖊️ Chỉnh văn bản
+// ======================================================
+// ✏️ Chỉnh chữ trực tiếp
+// ======================================================
 function enableTextEditing() {
   const selector =
-    "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
+    "h1, h2, h3, p.subtitle, .item, .section-title, .trade-box li, .trade-box h2";
   document.querySelectorAll(selector).forEach((el, index) => {
     if (!el.dataset.editId)
       el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
     el.setAttribute("data-original", el.textContent);
   });
 
-  document.querySelectorAll(selector).forEach(el => {
+  document.querySelectorAll(selector).forEach((el) => {
     el.addEventListener("click", () => {
       if (adminLevel === 0) return;
       if (el.isContentEditable) return;
       el.contentEditable = "true";
       el.style.outline = "2px dashed #00eaff";
       el.focus();
-      el.addEventListener("keydown", e => {
+      el.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           el.blur();
@@ -227,7 +256,7 @@ function enableTextEditing() {
         () => {
           el.contentEditable = "false";
           el.style.outline = "none";
-          hasChanges = true; // 🆕 Có thay đổi
+          hasChanges = true;
           showSaveButton();
         },
         { once: true }
@@ -236,38 +265,47 @@ function enableTextEditing() {
   });
 }
 
+// ======================================================
 // 💾 Hiển thị nút Lưu khi có thay đổi
+// ======================================================
 function showSaveButton() {
   if (adminLevel > 0 && hasChanges) {
     saveAllBtn.style.display = "block";
   }
 }
 
-// 🔘 Khi nhấn nút Lưu thay đổi
+// ======================================================
+// 🧩 Lưu toàn bộ thay đổi
+// ======================================================
 saveAllBtn.addEventListener("click", async () => {
   const prices = {};
-  document.querySelectorAll(".price").forEach(el => {
-    const key = el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+  document.querySelectorAll(".price").forEach((el) => {
+    const key =
+      el.previousElementSibling?.textContent.trim() || el.dataset.editId;
     prices[key] = el.textContent.trim();
   });
 
   const texts = {};
-  document.querySelectorAll("[data-edit-id]").forEach(el => {
+  document.querySelectorAll("[data-edit-id]").forEach((el) => {
     texts[el.dataset.editId] = el.textContent.trim();
   });
 
-  await saveDataToServer({
+  const payload = {
     status: statusBox.textContent.includes("ONLINE") ? "ONLINE" : "OFFLINE",
     items: prices,
-    texts: texts
-  });
+    texts: texts,
+  };
+
+  const result = await saveDataToServer(payload);
+  if (result?.success) showCustomAlert("✅ Đã lưu thay đổi lên server!");
 
   hasChanges = false;
   saveAllBtn.style.display = "none";
-  showCustomAlert("✅ Đã lưu thay đổi lên server!");
 });
 
-// 🔔 Thông báo tùy chỉnh
+// ======================================================
+// 🔔 Hộp thông báo tuỳ chỉnh
+// ======================================================
 function showCustomAlert(message) {
   const alertBox = document.getElementById("customAlert");
   if (alertBox) {
@@ -281,48 +319,3 @@ function showCustomAlert(message) {
     alert(message);
   }
 }
-
-// 🧠 Kết nối server — đọc / ghi dữ liệu
-async function getDataFromServer() {
-  try {
-    const res = await fetch("https://nguyengiang-gaming.onrender.com/api/data");
-    return res.json();
-  } catch (err) {
-    console.error("Lỗi lấy dữ liệu từ server:", err);
-    return null;
-  }
-}
-
-async function saveDataToServer(data) {
-  try {
-    await fetch("https://nguyengiang-gaming.onrender.com/api/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    console.log("✅ Dữ liệu đã lưu lên server thành công!");
-  } catch (err) {
-    console.error("Lỗi lưu dữ liệu lên server:", err);
-  }
-}
-fetch("/api/data", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    items: itemsData,
-    texts: textsData
-  }),
-})
-  .then((res) => res.json())
-  .then((data) => {
-    console.log("Server phản hồi:", data);
-    alert("✅ Dữ liệu đã lưu lên server thành công!");
-    // 👉 Gọi lại loadData() để tải dữ liệu mới từ server
-    if (typeof loadData === "function") {
-      loadData();
-    }
-  })
-  .catch((err) => {
-    console.error("❌ Lỗi khi gửi dữ liệu:", err);
-    alert("Lưu thất bại!");
-  });
