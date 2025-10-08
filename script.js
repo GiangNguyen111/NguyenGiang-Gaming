@@ -1,5 +1,8 @@
 let adminLevel = 0;
+let hasChanges = false; // 🆕 Theo dõi có thay đổi chữ hoặc giá
+
 const statusBox = document.getElementById("statusBox");
+const saveAllBtn = document.getElementById("saveAllBtn");
 const loginModal = document.getElementById("loginModal");
 const closeLogin = document.getElementById("closeLogin");
 const submitLogin = document.getElementById("submitLogin");
@@ -41,6 +44,7 @@ function setStatus(state) {
 // 🟩 Khi tải trang, lấy dữ liệu từ server
 window.addEventListener("load", async () => {
   const data = await getDataFromServer();
+
   if (data && data.status) {
     setStatus(data.status);
   } else {
@@ -48,7 +52,7 @@ window.addEventListener("load", async () => {
     setStatus(savedStatus || "ONLINE");
   }
 
-  // 💰 Cập nhật giá từ server (nếu có)
+  // 💰 Cập nhật giá từ server
   if (data && data.items) {
     for (const [key, price] of Object.entries(data.items)) {
       document.querySelectorAll(".price").forEach(el => {
@@ -56,6 +60,14 @@ window.addEventListener("load", async () => {
           el.previousElementSibling?.textContent.trim() || el.dataset.editId;
         if (itemKey === key) el.textContent = price;
       });
+    }
+  }
+
+  // 📝 Cập nhật chữ từ server
+  if (data && data.texts) {
+    for (const [key, value] of Object.entries(data.texts)) {
+      const el = document.querySelector(`[data-edit-id='${key}']`);
+      if (el) el.textContent = value;
     }
   }
 });
@@ -75,7 +87,7 @@ statusBox.addEventListener("click", async () => {
   }
 });
 
-// 🔻 Đóng login
+// 🔻 Đóng form login
 closeLogin.addEventListener("click", () => {
   loginModal.style.display = "none";
   loginMsg.textContent = "";
@@ -85,6 +97,7 @@ closeLogin.addEventListener("click", () => {
 function handleLogin() {
   const user = document.getElementById("username").value.trim();
   const pass = passwordInput.value.trim();
+
   if (user === "nguyengiang200722" && pass === "Zxc1230@@") {
     adminLevel = 1;
     showCustomAlert("✅ Đăng nhập thành công!");
@@ -93,6 +106,7 @@ function handleLogin() {
     loginMsg.textContent = "❌ Sai tài khoản hoặc mật khẩu!";
   }
 }
+
 document.getElementById("loginModal").addEventListener("keypress", e => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -157,20 +171,8 @@ function enablePriceEditing() {
         currentPriceEl.previousElementSibling?.textContent.trim() ||
         currentPriceEl.dataset.editId;
       currentPriceEl.textContent = newPrice;
-      localStorage.setItem("price_" + itemKey, newPrice);
-
-      // 🆕 Gửi toàn bộ giá hiện tại lên server
-      const prices = {};
-      document.querySelectorAll(".price").forEach(el => {
-        const key =
-          el.previousElementSibling?.textContent.trim() || el.dataset.editId;
-        prices[key] = el.textContent.trim();
-      });
-
-      await saveDataToServer({
-        status: statusBox.textContent.includes("ONLINE") ? "ONLINE" : "OFFLINE",
-        items: prices
-      });
+      hasChanges = true; // 🆕 đánh dấu có thay đổi
+      showSaveButton();
     }
     closeModal();
   });
@@ -206,6 +208,7 @@ function enableTextEditing() {
       el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
     el.setAttribute("data-original", el.textContent);
   });
+
   document.querySelectorAll(selector).forEach(el => {
     el.addEventListener("click", () => {
       if (adminLevel === 0) return;
@@ -224,12 +227,8 @@ function enableTextEditing() {
         () => {
           el.contentEditable = "false";
           el.style.outline = "none";
-          const key = "text_edit_" + el.dataset.editId;
-          const original = el.getAttribute("data-original") || "";
-          const current = el.textContent.trim();
-          if (current !== original.trim()) {
-            localStorage.setItem(key, current);
-          }
+          hasChanges = true; // 🆕 Có thay đổi
+          showSaveButton();
         },
         { once: true }
       );
@@ -237,31 +236,53 @@ function enableTextEditing() {
   });
 }
 
-// 🔄 Tải lại nội dung đã chỉnh
-document.addEventListener("DOMContentLoaded", () => {
-  const selector =
-    "h1, h2, h3, p.subtitle, .item, .price-title, .section-title, .trade-box p, .trade-box li, .trade-box h2, .trade-box h3";
-  document.querySelectorAll(selector).forEach((el, index) => {
-    if (!el.dataset.editId)
-      el.dataset.editId = `${el.tagName.toLowerCase()}_${index}`;
-    el.setAttribute("data-original", el.textContent);
-    const saved = localStorage.getItem("text_edit_" + el.dataset.editId);
-    if (saved !== null && saved.trim() !== "") el.textContent = saved;
+// 💾 Hiển thị nút Lưu khi có thay đổi
+function showSaveButton() {
+  if (adminLevel > 0 && hasChanges) {
+    saveAllBtn.style.display = "block";
+  }
+}
+
+// 🔘 Khi nhấn nút Lưu thay đổi
+saveAllBtn.addEventListener("click", async () => {
+  const prices = {};
+  document.querySelectorAll(".price").forEach(el => {
+    const key = el.previousElementSibling?.textContent.trim() || el.dataset.editId;
+    prices[key] = el.textContent.trim();
   });
+
+  const texts = {};
+  document.querySelectorAll("[data-edit-id]").forEach(el => {
+    texts[el.dataset.editId] = el.textContent.trim();
+  });
+
+  await saveDataToServer({
+    status: statusBox.textContent.includes("ONLINE") ? "ONLINE" : "OFFLINE",
+    items: prices,
+    texts: texts
+  });
+
+  hasChanges = false;
+  saveAllBtn.style.display = "none";
+  showCustomAlert("✅ Đã lưu thay đổi lên server!");
 });
 
 // 🔔 Thông báo tùy chỉnh
 function showCustomAlert(message) {
   const alertBox = document.getElementById("customAlert");
-  const msg = document.getElementById("alertMessage");
-  msg.textContent = message;
-  alertBox.classList.remove("hidden");
-  setTimeout(() => {
-    alertBox.classList.add("hidden");
-  }, 3000);
+  if (alertBox) {
+    const msg = document.getElementById("alertMessage");
+    msg.textContent = message;
+    alertBox.classList.remove("hidden");
+    setTimeout(() => {
+      alertBox.classList.add("hidden");
+    }, 3000);
+  } else {
+    alert(message);
+  }
 }
 
-// 🧠 Server — đọc / ghi dữ liệu thật
+// 🧠 Kết nối server — đọc / ghi dữ liệu
 async function getDataFromServer() {
   try {
     const res = await fetch("https://nguyengiang-gaming.onrender.com/api/data");
@@ -279,7 +300,7 @@ async function saveDataToServer(data) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    console.log("✅ Dữ liệu đã lưu thành công lên server!");
+    console.log("✅ Dữ liệu đã lưu lên server thành công!");
   } catch (err) {
     console.error("Lỗi lưu dữ liệu lên server:", err);
   }
