@@ -305,3 +305,24 @@ async function saveDataToServer(data) {
     console.error("Lỗi lưu dữ liệu lên server:", err);
   }
 }
+fetch("/api/data", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    items: itemsData,
+    texts: textsData
+  }),
+})
+  .then((res) => res.json())
+  .then((data) => {
+    console.log("Server phản hồi:", data);
+    alert("✅ Dữ liệu đã lưu lên server thành công!");
+    // 👉 Gọi lại loadData() để tải dữ liệu mới từ server
+    if (typeof loadData === "function") {
+      loadData();
+    }
+  })
+  .catch((err) => {
+    console.error("❌ Lỗi khi gửi dữ liệu:", err);
+    alert("Lưu thất bại!");
+  });
