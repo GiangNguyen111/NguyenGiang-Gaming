@@ -5,6 +5,7 @@ import cors from "cors";
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static("./"));
 
 const DATA_FILE = "./data.json";
 
@@ -27,3 +28,4 @@ app.post("/api/data", (req, res) => {
 // Chạy server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server chạy tại: http://localhost:${PORT}`));
+
