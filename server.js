@@ -7,10 +7,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("./"));
 
-// ⚙️ Khởi tạo database
+// ⚙️ Khởi tạo database SQLite (tự tạo nếu chưa có)
 const db = new Database("data.db");
 
-// 🧩 Tạo bảng lưu trữ nếu chưa có
+// 🧩 Tạo bảng lưu trữ nếu chưa tồn tại
 db.prepare("CREATE TABLE IF NOT EXISTS store (id TEXT PRIMARY KEY, json TEXT)").run();
 
 // 📥 API lấy dữ liệu
@@ -29,9 +29,10 @@ app.get("/api/data", (req, res) => {
   }
 });
 
-// 💾 API ghi dữ liệu
+// 💾 API ghi dữ liệu (có chống lỗi mất chữ/giá)
 app.post("/api/data", (req, res) => {
   try {
+    // Lấy dữ liệu cũ trong DB (nếu có)
     const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
     let current = { status: "ONLINE", items: {}, texts: {} };
 
@@ -43,15 +44,22 @@ app.post("/api/data", (req, res) => {
       }
     }
 
-    // Hợp nhất dữ liệu cũ và mới
+    // Hàm kiểm tra object hợp lệ
     const safeObj = (obj) =>
       obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+
+    // ✅ Gộp cẩn thận, tránh mất dữ liệu khi req.body rỗng hoặc undefined
     const merged = {
       status: req.body.status || current.status,
-      items: { ...safeObj(current.items), ...safeObj(req.body.items) },
-      texts: { ...safeObj(current.texts), ...safeObj(req.body.texts) },
+      items: Object.keys(safeObj(req.body.items)).length
+        ? { ...current.items, ...safeObj(req.body.items) }
+        : current.items,
+      texts: Object.keys(safeObj(req.body.texts)).length
+        ? { ...current.texts, ...safeObj(req.body.texts) }
+        : current.texts,
     };
 
+    // Ghi lại vào database
     db.prepare(
       "INSERT OR REPLACE INTO store (id, json) VALUES ('main', ?)"
     ).run(JSON.stringify(merged, null, 2));
@@ -64,10 +72,14 @@ app.post("/api/data", (req, res) => {
   }
 });
 
-// 🧾 API debug để xem dữ liệu thật
+// 🧾 API debug để xem dữ liệu thực tế trong DB
 app.get("/api/debug", (req, res) => {
-  const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
-  res.type("application/json").send(row ? row.json : "{}");
+  try {
+    const row = db.prepare("SELECT json FROM store WHERE id = 'main'").get();
+    res.type("application/json").send(row ? row.json : "{}");
+  } catch (err) {
+    res.status(500).send("{}");
+  }
 });
 
 // 🚀 Khởi động server
