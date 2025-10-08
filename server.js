@@ -34,22 +34,22 @@ app.post("/api/data", (req, res) => {
     if (!err && oldData) {
       try {
         current = JSON.parse(oldData);
-      } catch {
-        current = { status: "ONLINE", items: {}, texts: {} };
-      }
+      } catch {}
     }
 
-    // Gộp dữ liệu cũ và mới (để không mất phần nào)
     const merged = {
       status: req.body.status || current.status,
-      items: req.body.items || current.items,
-      texts: req.body.texts || current.texts
+      items: { ...current.items, ...req.body.items },
+      texts: { ...current.texts, ...req.body.texts }
     };
 
-    fs.writeFile(DATA_FILE, JSON.stringify(merged, null, 2), err2 => {
-      if (err2) return res.status(500).json({ error: "Không thể ghi dữ liệu" });
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2));
+      console.log("✅ Đã lưu thay đổi:", merged);
       res.json({ success: true });
-    });
+    } catch (err2) {
+      res.status(500).json({ error: "Không thể ghi dữ liệu" });
+    }
   });
 });
 
